@@ -5,11 +5,11 @@ class webhookService {
 
     endpoint = 'https://api.india.delta.exchange/v2/';
     apis = {
-        sgrswing : {
+        41255895 : {
             apiKey: 'cD5I6w7l4kBwoM0NKonug1AVHEZUHd',
             apiSecret: 'uGrl78bLUjJzsY0LnjILk093qi7DR4k3mAfGC1WrWj3xnSsLyKByznzsoYt6'
         },
-        sgr915 : {
+        71248653 : {
             apiKey: 'qQ1m9yMDdKk6Ag50YiVghOxfpgRnX5',
             apiSecret: 't0JyMaSDxd2VTEOLLylcBFaBKWWI9Pzj1EKZz1t13pKeFM6XL8kN0esSEF3h'
         }
@@ -32,6 +32,7 @@ class webhookService {
         }
 
         if (signal.orderType == "LONG_ENTRY") {
+            this.closeAllPositions(signal);
             buyorsell = 'buy';
         } else if (signal.orderType == "SHORT_ENTRY") {
             buyorsell = 'sell';
@@ -47,10 +48,10 @@ class webhookService {
 
         try {
             const timestamp = Math.floor(Date.now() / 1000).toString();
-            const signature = this.generateSignature(timestamp, '/v2/orders', orderDetails, this.apis[signal.account].apiSecret);
+            const signature = this.generateSignature(timestamp, '/v2/orders', orderDetails, this.apis[Number(signal.account)].apiSecret);
 
             const headers = {
-                'api-key': this.apis[signal.account].apiKey,
+                'api-key': this.apis[Number(signal.account)].apiKey,
                 'timestamp': timestamp,
                 'signature': signature,
                 'Content-Type': 'application/json',
@@ -65,6 +66,37 @@ class webhookService {
         } catch (error) {
             return { status: false, data: error.response.data.error.code };
         }
+    }
+
+    async closeAllPositions(signal){
+
+        const orderDetails = {
+            "close_all_portfolio": true,
+            "close_all_isolated": true,
+            "user_id": Number(signal.account)
+        };
+
+        try {
+            const timestamp = Math.floor(Date.now() / 1000).toString();
+            const signature = this.generateSignature(timestamp, '/v2/positions/close_all', orderDetails, this.apis[signal.account].apiSecret);
+
+            const headers = {
+                'api-key': this.apis[signal.account].apiKey,
+                'timestamp': timestamp,
+                'signature': signature,
+                'Content-Type': 'application/json',
+            };
+
+            const response = await axios.post(this.endpoint + 'positions/close_all', orderDetails, { headers });
+            if (response.data.success) {
+                return { status: true, orderNo: response.data.result.id, data: response.data.result, price: response.data.result.average_fill_price };
+            } else {
+                return { status: false, data: 'Order Not Placed.' };
+            }
+        } catch (error) {
+            return { status: false, data: error.response.data.error.code };
+        }
+
     }
 
     // {
