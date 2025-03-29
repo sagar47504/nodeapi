@@ -32,10 +32,10 @@ class webhookService {
         }
 
         if (signal.orderType == "LONG_ENTRY") {
-            await this.checkPositions(signal);
+            await this.closeAllPositions(signal);
             buyorsell = 'buy';
         } else if (signal.orderType == "SHORT_ENTRY") {
-            await this.checkPositions(signal);
+            await this.closeAllPositions(signal);
             buyorsell = 'sell';
         }
 
@@ -84,14 +84,13 @@ class webhookService {
             };
 
             const response = await axios.get(this.endpoint + 'positions/margined', { headers });
+            console.log(response.data.result.lenght)
             if (response.data.success && response.data.result.lenght > 0) {
                 await this.closeAllPositions(signal);
-                return { status: true };
-            } else {
-                return { status: false, data: 'Order Not Placed.' };
-            }
-
+            } 
+            return { status: true };
         } catch (error) {
+            console.log(error)
             return { status: false, data: error.response.data.error.code };
         }
 
@@ -116,12 +115,8 @@ class webhookService {
                 'Content-Type': 'application/json',
             };
 
-            const response = await axios.post(this.endpoint + 'positions/close_all', orderDetails, { headers });
-            if (response.data.success) {
-                return { status: true };
-            } else {
-                return { status: false, data: 'Order Not Placed.' };
-            }
+            await axios.post(this.endpoint + 'positions/close_all', orderDetails, { headers });
+            return { status: true };
         } catch (error) {
             return { status: false, data: error.response.data.error.code };
         }
