@@ -5,11 +5,11 @@ class webhookService {
 
     endpoint = 'https://api.india.delta.exchange/v2/';
     apis = {
-        41255895 : {
+        41255895: {
             apiKey: 'cD5I6w7l4kBwoM0NKonug1AVHEZUHd',
             apiSecret: 'uGrl78bLUjJzsY0LnjILk093qi7DR4k3mAfGC1WrWj3xnSsLyKByznzsoYt6'
         },
-        71248653 : {
+        71248653: {
             apiKey: 'qQ1m9yMDdKk6Ag50YiVghOxfpgRnX5',
             apiSecret: 't0JyMaSDxd2VTEOLLylcBFaBKWWI9Pzj1EKZz1t13pKeFM6XL8kN0esSEF3h'
         }
@@ -32,9 +32,10 @@ class webhookService {
         }
 
         if (signal.orderType == "LONG_ENTRY") {
-            this.closeAllPositions(signal);
+            this.checkPositions(signal);
             buyorsell = 'buy';
         } else if (signal.orderType == "SHORT_ENTRY") {
+            this.checkPositions(signal);
             buyorsell = 'sell';
         }
 
@@ -68,7 +69,35 @@ class webhookService {
         }
     }
 
-    async closeAllPositions(signal){
+    async checkPositions(signal) {
+
+        try {
+
+            const timestamp = Math.floor(Date.now() / 1000).toString();
+            const signature = this.generateSignature(timestamp, '/v2/positions/margined', {}, this.apis[Number(signal.account)].apiSecret);
+
+            const headers = {
+                'api-key': this.apis[Number(signal.account)].apiKey,
+                'timestamp': timestamp,
+                'signature': signature,
+                'Content-Type': 'application/json',
+            };
+
+            const response = await axios.get(this.endpoint + 'positions/margined', { headers });
+            if (response.data.success && response.data.result.lenght > 0) {
+                this.closeAllPositions(signal);
+                return { status: true };
+            } else {
+                return { status: false, data: 'Order Not Placed.' };
+            }
+
+        } catch (error) {
+            return { status: false, data: error.response.data.error.code };
+        }
+
+    }
+
+    async closeAllPositions(signal) {
 
         const orderDetails = {
             "close_all_portfolio": true,
@@ -89,7 +118,7 @@ class webhookService {
 
             const response = await axios.post(this.endpoint + 'positions/close_all', orderDetails, { headers });
             if (response.data.success) {
-                return { status: true, orderNo: response.data.result.id, data: response.data.result, price: response.data.result.average_fill_price };
+                return { status: true };
             } else {
                 return { status: false, data: 'Order Not Placed.' };
             }
