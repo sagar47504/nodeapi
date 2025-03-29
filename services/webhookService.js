@@ -32,10 +32,10 @@ class webhookService {
         }
 
         if (signal.orderType == "LONG_ENTRY") {
-            this.checkPositions(signal);
+            await this.checkPositions(signal);
             buyorsell = 'buy';
         } else if (signal.orderType == "SHORT_ENTRY") {
-            this.checkPositions(signal);
+            await this.checkPositions(signal);
             buyorsell = 'sell';
         }
 
@@ -85,7 +85,7 @@ class webhookService {
 
             const response = await axios.get(this.endpoint + 'positions/margined', { headers });
             if (response.data.success && response.data.result.lenght > 0) {
-                this.closeAllPositions(signal);
+                await this.closeAllPositions(signal);
                 return { status: true };
             } else {
                 return { status: false, data: 'Order Not Placed.' };
